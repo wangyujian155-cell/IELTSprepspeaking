@@ -1,10 +1,12 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Netlify serverless function handler
 exports.handler = async (event, context) => {
   // Set CORS headers
+  // Allow all origins by default for public access, can be restricted via CORS_ORIGIN env var
+  const allowedOrigin = process.env.CORS_ORIGIN || '*';
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };

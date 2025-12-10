@@ -28,8 +28,12 @@
 3. 进入 "Site configuration" → "Environment variables"
 4. 点击 "Add a variable"
 5. 添加以下变量：
-   - **Key (键)**: `GEMINI_API_KEY`
-   - **Value (值)**: 您的 Gemini API 密钥（从 [Google AI Studio](https://aistudio.google.com/app/apikey) 获取）
+   - **必需**: 
+     - Key (键): `GEMINI_API_KEY`
+     - Value (值): 您的 Gemini API 密钥（从 [Google AI Studio](https://aistudio.google.com/app/apikey) 获取）
+   - **可选（提高安全性）**:
+     - Key (键): `CORS_ORIGIN`
+     - Value (值): 您的网站 URL (例如: `https://your-site.netlify.app`)
 
 ### 2. 重新部署
 

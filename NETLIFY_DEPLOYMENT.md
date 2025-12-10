@@ -23,6 +23,9 @@ This application can be deployed on Netlify with the following steps:
    - Add a new variable:
      - Key: `GEMINI_API_KEY`
      - Value: Your Gemini API key
+   - (Optional) For additional security, add:
+     - Key: `CORS_ORIGIN`
+     - Value: Your site's URL (e.g., `https://your-site.netlify.app`)
 
 4. **Deploy**
    - Click "Deploy site"
