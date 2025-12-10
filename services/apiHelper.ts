@@ -1,24 +1,41 @@
 // API Helper for Vercel deployment
 export async function callGeminiAPI(prompt: string, model: string = 'gemini-2.0-flash'): Promise<string> {
-  const endpoint = process.env.NODE_ENV === 'production' 
-    ? '/api/gemini'
-    : 'http://localhost:3000/api/gemini';
+  // Determine the API endpoint based on environment
+  let endpoint = '/api/gemini';
+  
+  // In development, if running on localhost, the proxy will handle it
+  // In production on Vercel, use the relative path
+  
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt, model }),
+    });
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ prompt, model }),
-  });
+    if (!response.ok) {
+      let errorMsg = `API error: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.error || errorData.details || errorMsg;
+      } catch (e) {
+        const text = await response.text();
+        if (text) errorMsg = text.slice(0, 200);
+      }
+      throw new Error(errorMsg);
+    }
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'API error' }));
-    throw new Error(error.error || `API error: ${response.status}`);
+    const data = await response.json();
+    if (!data.text) {
+      throw new Error('No text in response');
+    }
+    return data.text;
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.text;
 }
 
 export async function generateSampleAnswer(question: string, part: string = "part1") {
