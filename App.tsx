@@ -1,5 +1,6 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { HashRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import AudioPlayer from './components/AudioPlayer';
 import VoiceRecorder from './components/VoiceRecorder';
@@ -242,7 +243,7 @@ const VocabModal: React.FC<{ vocab: Vocabulary; onClose: () => void }> = ({ voca
   );
 };
 
-const TopicListPage: React.FC = () => {
+const TopicListPage: React.FC<{navigate: (path: string) => void}> = ({ navigate }) => {
   const [activePart, setActivePart] = useState('part1');
   const [search, setSearch] = useState('');
   const allTopics = useMemo(() => [...TOPICS, ...customTopicService.getTopics()], []);
@@ -289,7 +290,7 @@ const TopicListPage: React.FC = () => {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTopics.map(topic => (
-          <Link to={`/topic/${topic.id}`} key={topic.id} className="group block p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl transition-all duration-300">
+          <button onClick={() => navigate(`/topic/${topic.id}`)} key={topic.id} className="group block p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl transition-all duration-300 text-left w-full">
             <div className="flex justify-between items-start mb-4">
               <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                 topic.category === 'People' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
@@ -306,14 +307,14 @@ const TopicListPage: React.FC = () => {
             <div className="flex items-center text-xs font-bold text-slate-400 group-hover:text-blue-500 transition-colors">
               Start Practice <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
             </div>
-          </Link>
+          </button>
         ))}
       </div>
     </div>
   );
 };
 
-const QuestionExpanderPage: React.FC = () => {
+const QuestionExpanderPage: React.FC<{navigate: (path: string) => void}> = ({ navigate }) => {
   const [question, setQuestion] = useState('');
   const [part, setPart] = useState('part1');
   const [isLoading, setIsLoading] = useState(false);
@@ -413,7 +414,7 @@ const QuestionExpanderPage: React.FC = () => {
   );
 };
 
-const CriteriaPage: React.FC = () => {
+const CriteriaPage: React.FC<{navigate: (path: string) => void}> = ({ navigate }) => {
   const criteria = [
     { title: "Fluency & Coherence", desc: "Speak at length without noticeable effort or loss of coherence. Use a range of connectives and discourse markers.", icon: <Activity className="w-6 h-6 text-blue-500" /> },
     { title: "Lexical Resource", desc: "Use a wide range of vocabulary with precision. Use less common and idiomatic vocabulary skillfully.", icon: <Book className="w-6 h-6 text-purple-500" /> },
@@ -444,7 +445,7 @@ const CriteriaPage: React.FC = () => {
   );
 };
 
-const VocabularyPage: React.FC = () => {
+const VocabularyPage: React.FC<{navigate: (path: string) => void}> = ({ navigate }) => {
   const [deck, setDeck] = useState<VocabCard[]>(vocabService.getDeck());
   const [mode, setMode] = useState<'list' | 'review'>('list');
   const [reviewIndex, setReviewIndex] = useState(0);
@@ -542,7 +543,7 @@ const VocabularyPage: React.FC = () => {
   );
 };
 
-const SettingsPage: React.FC = () => {
+const SettingsPage: React.FC<{navigate: (path: string) => void}> = ({ navigate }) => {
   const handleClearData = () => {
     if (confirm("Are you sure? This will delete all your vocabulary and progress.")) {
       localStorage.clear();
@@ -581,8 +582,8 @@ const SettingsPage: React.FC = () => {
 
 type Stage = 'idle' | 'prep' | 'recording' | 'editing' | 'evaluating' | 'results';
 
-const PracticePage: React.FC = () => {
-  const { id } = useParams();
+const PracticePage: React.FC<{params: Record<string, string>; navigate: (path: string) => void}> = ({ params, navigate }) => {
+  const { id } = params;
   const allTopics = useMemo(() => [...TOPICS, ...customTopicService.getTopics()], []);
   const topic = allTopics.find(t => t.id === Number(id));
   
@@ -762,9 +763,9 @@ const PracticePage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
        <div className="mb-6">
-         <Link to="/" className="text-slate-500 hover:text-blue-600 flex items-center gap-2 mb-4 font-bold text-sm">
+         <button onClick={() => navigate('/')} className="text-slate-500 hover:text-blue-600 flex items-center gap-2 mb-4 font-bold text-sm">
            <ChevronRight className="w-4 h-4 rotate-180" /> Back to Topics
-         </Link>
+         </button>
          <div className="flex items-center justify-between">
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white line-clamp-1">{topic.title}</h1>
@@ -978,21 +979,43 @@ const PracticePage: React.FC = () => {
   );
 };
 
+// Simple client-side router hook for Next.js
+const useClientRouter = () => {
+  const [route, setRoute] = useState<string>('/');
+  const [params, setParams] = useState<Record<string, string>>({});
+
+  const navigate = (path: string) => {
+    setRoute(path);
+    // Parse params from path like /topic/:id
+    const match = path.match(/^\/topic\/(.+)$/);
+    if (match) {
+      setParams({ id: match[1] });
+    } else {
+      setParams({});
+    }
+  };
+
+  return { route, params, navigate };
+};
+
 const App: React.FC = () => {
+  const { route, params, navigate } = useClientRouter();
+
+  const renderPage = () => {
+    if (route === '/') return <TopicListPage navigate={navigate} />;
+    if (route.startsWith('/topic/')) return <PracticePage params={params} navigate={navigate} />;
+    if (route === '/expander') return <QuestionExpanderPage navigate={navigate} />;
+    if (route === '/criteria') return <CriteriaPage navigate={navigate} />;
+    if (route === '/vocabulary') return <VocabularyPage navigate={navigate} />;
+    if (route === '/settings') return <SettingsPage navigate={navigate} />;
+    if (route === '/progress') return <div className="p-10 text-center font-bold text-slate-400">Progress Tracking Coming Soon</div>;
+    return <TopicListPage navigate={navigate} />;
+  };
+
   return (
-    <HashRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<TopicListPage />} />
-          <Route path="/topic/:id" element={<PracticePage />} />
-          <Route path="/expander" element={<QuestionExpanderPage />} />
-          <Route path="/criteria" element={<CriteriaPage />} />
-          <Route path="/vocabulary" element={<VocabularyPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/progress" element={<div className="p-10 text-center font-bold text-slate-400">Progress Tracking Coming Soon</div>} />
-        </Routes>
-      </Layout>
-    </HashRouter>
+    <Layout navigate={navigate} currentRoute={route}>
+      {renderPage()}
+    </Layout>
   );
 };
 
