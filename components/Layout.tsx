@@ -1,15 +1,14 @@
-'use client';
 
 import React, { useEffect, useState } from 'react';
 import { BookOpen, BarChart2, Menu, Mic, Library, GraduationCap, Moon, Sun, Scale, Settings, Wand2 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
-  navigate: (path: string) => void;
-  currentRoute: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, navigate, currentRoute }) => {
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check local storage or system preference
@@ -74,15 +73,13 @@ const Layout: React.FC<LayoutProps> = ({ children, navigate, currentRoute }) => 
         
         <nav className="p-4 space-y-2 flex-1 mt-2">
           {navItems.map((item) => {
-            const isActive = currentRoute === item.path;
+            const isActive = location.pathname === item.path;
             return (
-              <button
+              <Link
                 key={item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  setIsSidebarOpen(false);
-                }}
-                className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-medium w-full text-left ${
+                to={item.path}
+                onClick={() => setIsSidebarOpen(false)}
+                className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-medium ${
                   isActive 
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800' 
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
@@ -93,7 +90,7 @@ const Layout: React.FC<LayoutProps> = ({ children, navigate, currentRoute }) => 
                 </span>
                 {item.label}
                 {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></div>}
-              </button>
+              </Link>
             );
           })}
         </nav>

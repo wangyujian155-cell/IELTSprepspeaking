@@ -1,17 +1,3 @@
-# Dependencies
-node_modules/
-.next/
-out/
-dist/
-dist-ssr/
-build/
-
-# Environment variables
-.env
-.env.local
-.env*.local
-*.local
-
 # Logs
 logs
 *.log
@@ -20,6 +6,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
 
 # Editor directories and files
 .vscode/*
@@ -31,17 +22,3 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
-
-# Old Vite files (removed for Next.js)
-vite.config.ts
-index.html
-index.tsx
-
-# Testing
-coverage/
-
-# Production
-build/
-
-# Vercel
-.vercel
