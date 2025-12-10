@@ -1,45 +1,49 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Vercel Serverless Function to handle Gemini API calls
 export default async function handler(
-  request: any,
-  response: any,
+  req: any,
+  res: any,
 ) {
-  // Set CORS headers
-  response.setHeader('Access-Control-Allow-Credentials', 'true');
-  response.setHeader('Access-Control-Allow-Origin', '*');
-  response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  response.setHeader(
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  if (request.method === 'OPTIONS') {
-    return response.status(200).end();
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
-  // Only allow POST requests
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const { prompt, model = 'gemini-2.0-flash' } = request.body;
+    const { prompt, model = 'gemini-2.0-flash' } = req.body;
 
-    if (!prompt) {
-      return response.status(400).json({ error: 'Missing prompt parameter' });
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ 
+        error: 'Invalid request',
+        message: 'prompt is required and must be a string'
+      });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('GEMINI_API_KEY environment variable not found');
-      return response.status(500).json({ 
-        error: 'API key not configured on server',
-        code: 'NO_API_KEY'
+      console.error('[API] GEMINI_API_KEY not configured');
+      return res.status(500).json({ 
+        error: 'API Configuration Error',
+        message: 'GEMINI_API_KEY is not set in environment variables'
       });
     }
 
-    console.log(`Calling Gemini API with model: ${model}`);
+    console.log(`[API] Calling Gemini with model: ${model}`);
+    
     const genAI = new GoogleGenerativeAI(apiKey);
     const genModel = genAI.getGenerativeModel({ model });
     
@@ -47,22 +51,26 @@ export default async function handler(
     const text = result.response.text();
 
     if (!text) {
-      return response.status(500).json({ 
-        error: 'Empty response from Gemini',
-        code: 'EMPTY_RESPONSE'
+      return res.status(500).json({ 
+        error: 'Generation Failed',
+        message: 'Gemini returned an empty response'
       });
     }
 
-    return response.status(200).json({ text });
+    console.log('[API] Successfully generated content');
+    return res.status(200).json({ text });
+
   } catch (error) {
-    console.error('Gemini API error:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return response.status(500).json({
-      error: 'Failed to generate content',
-      details: errorMessage,
-      code: 'GENERATION_ERROR'
+    console.error('[API] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      message: message,
+      timestamp: new Date().toISOString()
     });
   }
 }
+
 
 
