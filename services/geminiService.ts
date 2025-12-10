@@ -1,47 +1,22 @@
-
-import { GoogleGenAI, Modality, Schema, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { SampleAnswer, Vocabulary, WordTiming, EvaluationResult } from "../types";
 
-// Helper to decode Base64 to ArrayBuffer for audio playback
-function decode(base64: string) {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
+// Helper function to call backend API
+async function callGeminiAPI(prompt: string, model: string = 'gemini-2.0-flash'): Promise<string> {
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ prompt, model }),
+  });
 
-// Helper to convert raw PCM to AudioBuffer
-function pcmToAudioBuffer(
-  data: Uint8Array,
-  ctx: AudioContext,
-  sampleRate: number,
-  numChannels: number = 1
-): AudioBuffer {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      // Convert 16-bit PCM to float [-1.0, 1.0]
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'API call failed');
   }
-  return buffer;
-}
 
-// Singleton context for decoding to avoid "limit reached" errors
-let decodingContext: AudioContext | null = null;
-function getDecodingContext() {
-  if (!decodingContext) {
-    // Create context with default/native sample rate to ensure hardware compatibility
-    decodingContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  }
-  return decodingContext;
+  const data = await response.json();
+  return data.text;
 }
 
 export interface ExpandedContent {
