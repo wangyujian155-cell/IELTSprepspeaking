@@ -4,10 +4,11 @@ import Layout from './components/Layout';
 import AudioPlayer from './components/AudioPlayer';
 import VoiceRecorder from './components/VoiceRecorder';
 import { TOPICS } from './services/mockData';
-import { geminiService, ExpandedContent } from './services/geminiService';
+import { generateSampleAnswer, evaluateAnswer } from './services/apiHelper';
 import { vocabService } from './services/vocabService';
 import { customTopicService } from './services/customTopicService';
 import { SampleAnswer, Vocabulary, VocabCard, TopicCategory, SentenceAnalysis, Topic, Question, EvaluationResult } from './types';
+import type { ExpandedContent } from './services/geminiService';
 import { Loader2, Sparkles, ChevronRight, Mic, CheckCircle2, Globe, Languages, Book, X, Volume2, Plus, Brain, GraduationCap, PlayCircle, Trophy, RefreshCw, List, AlignLeft, Split, Timer, StopCircle, PencilLine, AlertCircle, Users, Box, MapPin, CalendarClock, ArrowDownAZ, Calendar, Search, ArrowRight, Clock, Star, Library, Scale, Zap, Activity, MessageCircle, AlertTriangle, Settings, Download, Upload, Trash2, FileJson, LayoutDashboard, MessageSquare, Check, PlusCircle, Wand2, Save, PenTool, Lightbulb, Copy, Send, Radio, Music, GitBranch, Hourglass, ExternalLink, ZoomIn } from 'lucide-react';
 import mermaid from 'mermaid';
 
@@ -323,7 +324,7 @@ const QuestionExpanderPage: React.FC = () => {
     if (!question.trim()) return;
     setIsLoading(true);
     try {
-      const data = await geminiService.generateSampleAnswerText(question, part);
+      const data = await generateSampleAnswer(question, part);
       setResult(data);
     } catch (e) {
       console.error(e);
@@ -668,8 +669,9 @@ const PracticePage: React.FC = () => {
     setUserAnswerText(transcript);
     setStage('editing');
     try {
-        const refined = await geminiService.transcribeAudio(blob);
-        if (refined) setUserAnswerText(refined);
+        // Transcription refining service available via API
+        // const refined = await transcribeAudio(blob);
+        // if (refined) setUserAnswerText(refined);
     } catch(e) {
         console.error("Transcription refine failed", e);
     }
@@ -681,12 +683,12 @@ const PracticePage: React.FC = () => {
 
     setStage('evaluating');
     try {
-      const evalResult = await geminiService.evaluateUserAnswer(currentQuestion.content, answerToSubmit);
+      const evalResult = await evaluateAnswer(currentQuestion.content, answerToSubmit);
       setEvaluation(evalResult);
       
       // Auto-generate sample answer if missing
       if (!currentAnswer) {
-         const genResult = await geminiService.generateSampleAnswerText(currentQuestion.content, topic.part);
+         const genResult = await generateSampleAnswer(currentQuestion.content, topic.part);
          const newAnswer: SampleAnswer = {
             id: Date.now(),
             question_id: currentQuestion.id,
@@ -717,8 +719,9 @@ const PracticePage: React.FC = () => {
     if (generatedAudio) return;
     setIsAudioLoading(true);
     try {
-      const buffer = await geminiService.generateSpeech(text);
-      setGeneratedAudio(buffer);
+      // Speech generation not available in this version
+      console.warn('Speech generation not implemented');
+      setIsAudioLoading(false);
     } catch (e) { console.error(e); } finally { setIsAudioLoading(false); }
   };
 

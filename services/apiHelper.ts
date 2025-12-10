@@ -1,6 +1,10 @@
-// API Helper for Next.js backend
+// API Helper for Vercel deployment
 export async function callGeminiAPI(prompt: string, model: string = 'gemini-2.0-flash'): Promise<string> {
-  const response = await fetch('/api/gemini', {
+  const endpoint = process.env.NODE_ENV === 'production' 
+    ? '/api/gemini'
+    : 'http://localhost:3000/api/gemini';
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
