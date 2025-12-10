@@ -5,7 +5,7 @@ import Layout from './components/Layout';
 import AudioPlayer from './components/AudioPlayer';
 import VoiceRecorder from './components/VoiceRecorder';
 import { TOPICS } from './services/mockData';
-import { geminiService, ExpandedContent } from './services/geminiService';
+import { apiService, ExpandedContent } from './services/apiClient';
 import { vocabService } from './services/vocabService';
 import { customTopicService } from './services/customTopicService';
 import { SampleAnswer, Vocabulary, VocabCard, TopicCategory, SentenceAnalysis, Topic, Question, EvaluationResult } from './types';
@@ -309,7 +309,7 @@ const QuestionExpanderPage: React.FC = () => {
     setLoading(true);
     setResult(null);
     try {
-        const res = await geminiService.generateSampleAnswerText(question, part);
+        const res = await apiService.generateSampleAnswerText(question, part);
         setResult(res);
     } catch(e) {
         console.error(e);
@@ -658,7 +658,7 @@ const PracticePage: React.FC = () => {
     // Optional: Trigger high-fidelity transcription here
     setStage('editing');
     try {
-        const refined = await geminiService.transcribeAudio(blob);
+        const refined = await apiService.transcribeAudio(blob);
         if (refined) setUserAnswerText(refined);
     } catch(e) {
         console.error("Transcription refine failed", e);
@@ -671,12 +671,12 @@ const PracticePage: React.FC = () => {
 
     setStage('evaluating');
     try {
-      const evalResult = await geminiService.evaluateUserAnswer(currentQuestion.content, answerToSubmit);
+      const evalResult = await apiService.evaluateUserAnswer(currentQuestion.content, answerToSubmit);
       setEvaluation(evalResult);
       
       // Auto-generate sample answer if missing
       if (!currentAnswer) {
-         const genResult = await geminiService.generateSampleAnswerText(currentQuestion.content, topic.part);
+         const genResult = await apiService.generateSampleAnswerText(currentQuestion.content, topic.part);
          const newAnswer: SampleAnswer = {
             id: Date.now(),
             question_id: currentQuestion.id,
@@ -708,7 +708,7 @@ const PracticePage: React.FC = () => {
     if (generatedAudio) return;
     setIsAudioLoading(true);
     try {
-      const buffer = await geminiService.generateSpeech(text);
+      const buffer = await apiService.generateSpeech(text);
       setGeneratedAudio(buffer);
     } catch (e) { console.error(e); } finally { setIsAudioLoading(false); }
   };
