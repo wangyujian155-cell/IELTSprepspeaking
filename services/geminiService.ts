@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Modality, Schema, Type } from "@google/genai";
+import { GoogleGenAI, Modality, Schema, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { SampleAnswer, Vocabulary, WordTiming, EvaluationResult } from "../types";
 
 // Helper to decode Base64 to ArrayBuffer for audio playback
@@ -185,8 +185,6 @@ export class GeminiService {
       reader.onloadend = async () => {
         try {
           const base64data = (reader.result as string).split(',')[1];
-          // Use the blob's type if available, otherwise default to a common web audio format
-          // Gemini 2.5 Flash is quite robust with audio formats
           const mimeType = audioBlob.type || 'audio/webm'; 
 
           const response = await this.ai.models.generateContent({
@@ -219,82 +217,50 @@ export class GeminiService {
     const prompt = `
       ROLE: You are an elite IELTS Speaking Coach (Band 9 Level) and a Senior Linguist specializing in Second Language Acquisition (SLA) for Chinese learners. Your expertise lies in diagnosing "Chinglish" (L1 interference) and transforming it into idiomatic, sophisticated English that meets IELTS Band 8+ criteria. You are also a specialized "Logic Analyst".
       
-      CORE EXPERTISE:
-      <core_skills>
+      CORE SKILLS:
       1. Collocation Repair: Identify and fix unnatural Verb-Noun or Adjective-Noun pairings (e.g., change "learn knowledge" to "acquire insights"; "big rain" to "torrential downpour").
       2. Syntax Restructuring: Convert "Topic-Comment" structures (Chinglish) into standard English SVO structures. Fix run-on sentences and "There have" existentials.
       3. Part 3 Hedging: If the input discusses abstract topics, social issues, or opinions (typical of IELTS Part 3), you MUST inject academic hedging (e.g., "tend to," "arguably," "it appears that") to avoid generalization.
       4. Lexical Upgrading: Replace Band 5/6 vocabulary (e.g., "good," "bad," "think") with Band 8+ alternatives (e.g., "beneficial," "detrimental," "speculate").
-      </core_skills>
-
-      TARGET: Provide a strict IELTS assessment, a structural logic breakdown using Argument Mining, and a linguistic transformation of the answer.
 
       INPUT:
       Question: "${question}"
-      Transcript: "${userAnswer}"
+      User Answer: "${userAnswer}"
 
-      --- PART 1: LINGUISTIC DIAGNOSIS & ASSESSMENT ---
-      Evaluate based on Fluency, Lexical Resource, Grammar, and Pronunciation.
+      TASK 1: LINGUISTIC DIAGNOSIS (for 'feedback' field)
+      Provide a strict IELTS assessment.
+      Generate a "Native Polish Comparison Table" in Markdown. 
+      Table Columns: 
+      - Original Fragment (Chinglish)
+      - Band 8+ Polished Expression
+      - Coach's Insight (Why?)
       
-      OUTPUT FORMAT FOR 'feedback' field:
-      1. **Native Polish Comparison Table** (Markdown):
-      Create a table with 3 columns:
-      | Original Fragment (Chinglish) | Band 8+ Polished Expression | Coach's Insight (Why?) |
-      |-------------------------------|-----------------------------|------------------------|
-      | (Quote specific error)        | (Native/Idiomatic version)  | (Explain L1 interference/Collocation error) |
-      
-      Example row:
-      | I very like | I am **passionate about** | "Very like" is Chinglish. Use strong verbs/adjectives. |
+      After the table, provide a brief bullet-point summary of the assessment.
 
-      2. Brief Assessment Summary (Markdown bullet points).
+      TASK 2: LOGIC VISUALIZATION (for 'logic_analysis.mermaid_code')
+      Construct a 'graph TD' flowchart representing the user's logic flow.
+      Styling Rules:
+      - Claim (Red): classDef claim fill:#ffcccc,stroke:#333;
+      - Reason (Blue): classDef reason fill:#cce5ff,stroke:#333;
+      - Evidence (Green): classDef evidence fill:#ccffcc,stroke:#333;
+      - Missing Links: dotted lines.
+      - Apply classes to nodes (e.g., A[Main Claim]:::claim --> B[Reason]:::reason).
 
-      CRITICAL: In the table, specifically identify "Chinglish" errors found (L1 interference) and provide the native correction based on <core_skills>.
+      TASK 3: LOGIC DIAGNOSIS (for 'logic_analysis.logic_xray')
+      In Chinese (Mandarin), briefly analyze the Main Claim, Reasons, and Examples. Point out logic gaps or circular reasoning in 1-2 sentences.
 
-      --- PART 2: LOGIC VISUALIZATION (Mermaid.js) ---
-      Construct a 'graph TD' flowchart representing the candidate's argument structure.
-      Rules:
-      1. Nodes: Identify [Main Claim], [Reason], [Evidence/Example].
-      2. Styles:
-         - Claim: fill:#ffcccc,stroke:#333 (Red-ish)
-         - Reason: fill:#cce5ff,stroke:#333 (Blue-ish)
-         - Evidence: fill:#ccffcc,stroke:#333 (Green-ish)
-         - Missing: fill:#fff,stroke:#f00,stroke-dasharray: 5 5 (Dotted Red)
-      3. Gaps: If a logical link is missing, create a node with class 'missing'.
-      4. Syntax: 
-         - Define classes at the end: classDef claim fill:#ffcccc,stroke:#333; classDef reason fill:#cce5ff,stroke:#333; classDef evidence fill:#ccffcc,stroke:#333; classDef missing fill:#fff,stroke:#f00,stroke-width:2px,stroke-dasharray: 5 5;
-         - Apply classes: A[Main Claim]:::claim --> B[Reason]:::reason
-      
-      --- PART 3: EXAMINER'S NOTE (Logic Diagnosis) ---
-      In Chinese (Mandarin), explicitly point out the weakest link in the logic chain (1-2 sentences).
+      TASK 4: BETTER VERSION (for 'better_version')
+      A native-speaker level rewrite applying Core Skills.
 
-      --- JSON OUTPUT STRUCTURE ---
-      Return a single JSON object (NO markdown formatting outside the mermaid code):
-      {
-        "score": number, 
-        "feedback": "Markdown string containing the Native Polish Comparison Table and assessment.",
-        "better_version": "A native-speaker level rewrite. Apply strict Syntax Restructuring, Collocation Repair, and Lexical Upgrading.",
-        "prosody_markup": "Prosody of better version (**bold** stress, | pause, arrows).",
-        "ipa": "IPA of better version.",
-        "logic_analysis": {
-           "logic_xray": "The Examiner's Note in Chinese (The Logic Diagnosis).",
-           "mermaid_code": "The raw Mermaid graph string.",
-           "argument_structure": {
-              "Main_Claim": "string",
-              "Supporting_Reasons": ["string"],
-              "Examples": ["string"],
-              "Logic_Gap_Detected": boolean,
-              "Improvement_Suggestion": "Specific advice to fix the logic gap."
-           },
-           "next_step_advice": "One actionable advice sentence in Chinese."
-        }
-      }
+      OUTPUT FORMAT (JSON):
+      Return a single JSON object.
     `;
 
     const schema: Schema = {
       type: Type.OBJECT,
       properties: {
         score: { type: Type.NUMBER },
-        feedback: { type: Type.STRING },
+        feedback: { type: Type.STRING, description: "Markdown string containing the Native Polish Comparison Table and assessment." },
         better_version: { type: Type.STRING },
         prosody_markup: { type: Type.STRING },
         ipa: { type: Type.STRING },
@@ -328,6 +294,12 @@ export class GeminiService {
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ]
       },
     });
 
